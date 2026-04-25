@@ -1,6 +1,8 @@
 package com.hcwebhook.app
 
 import android.content.Context
+import android.content.pm.PackageManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -12,6 +14,14 @@ import kotlinx.serialization.json.putJsonArray
 import java.time.Instant
 
 class SyncManager(private val context: Context) {
+
+    private val appVersionName: String by lazy {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
+        } catch (_: PackageManager.NameNotFoundException) {
+            "Unknown"
+        }
+    }
 
     private val preferencesManager = PreferencesManager(context)
     private val healthConnectManager = HealthConnectManager(context)
@@ -105,6 +115,8 @@ class SyncManager(private val context: Context) {
             preferencesManager.setLastSyncSummary(summary)
 
             Result.success(SyncResult.Success(syncCounts))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -254,7 +266,7 @@ class SyncManager(private val context: Context) {
     private fun buildJsonPayload(healthData: HealthData): String {
         val json = buildJsonObject {
             put("timestamp", Instant.now().toString())
-            put("app_version", "1.0")
+            put("app_version", appVersionName)
 
             if (healthData.steps.isNotEmpty()) {
                 putJsonArray("steps") {
@@ -417,6 +429,9 @@ class SyncManager(private val context: Context) {
                         put("start_time", it.startTime.toString())
                         put("end_time", it.endTime.toString())
                         put("duration_seconds", it.duration.seconds)
+                        it.distanceMeters?.let { distanceMeters ->
+                            put("distance_meters", distanceMeters)
+                        }
                     }) }
                 }
             }
