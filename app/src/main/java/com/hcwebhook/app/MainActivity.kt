@@ -1,7 +1,7 @@
 package com.hcwebhook.app
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
@@ -17,8 +17,9 @@ import com.hcwebhook.app.screens.LogsScreen
 import com.hcwebhook.app.screens.OnboardingScreen
 import com.hcwebhook.app.ui.theme.HCWebhookTheme
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var preferencesManager: PreferencesManager
     internal var pendingSyncCallback: (() -> Unit)? = null
@@ -28,7 +29,7 @@ class MainActivity : ComponentActivity() {
     private fun initializePermissionLauncher() {
         val requestPermissionActivityContract = androidx.health.connect.client.PermissionController.createRequestPermissionResultContract()
 
-        permissionLauncher = registerForActivityResult(requestPermissionActivityContract) { granted: Set<String> ->
+        permissionLauncher = registerForActivityResult(requestPermissionActivityContract) { _: Set<String> ->
             lifecycleScope.launch {
                 val healthConnectManager = HealthConnectManager(this@MainActivity)
                 val grantedPermissions = healthConnectManager.getGrantedPermissions()
@@ -133,8 +134,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     bottomNavItems.forEach { screen ->
                         NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = screen.title) },
-                            label = { Text(screen.title) },
+                            icon = { Icon(screen.icon, contentDescription = stringResource(screen.titleResId)) },
+                            label = { Text(stringResource(screen.titleResId)) },
                             selected = selectedScreen == screen,
                             onClick = { selectedScreen = screen }
                         )
@@ -149,15 +150,11 @@ class MainActivity : ComponentActivity() {
                         permissionLauncher = permissionLauncher,
                         hasPermissions = hasPermissions,
                         grantedPermissionsSet = grantedPermissionsSet,
-                        sdkStatus = sdkStatus,
-                        onPermissionsUpdated = { hp, gps ->
-                            hasPermissions = hp
-                            grantedPermissionsSet = gps
-                        }
+                        sdkStatus = sdkStatus
                     )
-                    is NavigationScreen.Webhooks -> com.hcwebhook.app.screens.WebhooksScreen(activity = activity)
+                    is NavigationScreen.Webhooks -> com.hcwebhook.app.screens.WebhooksScreen()
                     is NavigationScreen.Logs -> LogsScreen()
-                    is NavigationScreen.About -> AboutScreen(activity = activity, onRestartOnboarding = onRestartOnboarding)
+                    is NavigationScreen.About -> AboutScreen(onRestartOnboarding = onRestartOnboarding)
                 }
             }
         }
